@@ -1,0 +1,49 @@
+image:
+  repository: kanei0415/ktcloud-msa-user-api-gateway
+  tag: 74c63c709b36b6f26e86da23b91a8949d2bfa8e2
+  pullPolicy: IfNotPresent
+
+addons:
+  
+
+service:
+  type: LoadBalancer
+
+appConfig:
+  spring:
+    application:
+      name: user-api-gateway
+  grpc:
+    client:
+      auth-service:
+        address: 'static://auth-service-release.svc.ktcloud-market-msa-release:9090'
+        negotiation-type: plaintext
+      product-service:
+        address: 'static://product-service-release.svc.ktcloud-market-msa-release:9090'
+        negotiation-type: plaintext
+      order-service:
+        address: 'static://order-service-release.svc.ktcloud-market-msa-release:9090'
+        negotiation-type: plaintext
+      inventory-service:
+        address: 'static://inventory-service-release.svc.ktcloud-market-msa-release:9090'
+        negotiation-type: plaintext
+  jwt:
+    secret: 'v7S6A9yB2E5H8KcNfUjXnZr4u7x!A%D*G-'
+  server:
+    port: 8080
+  management:
+    endpoints:
+      web:
+        base-path: /
+        path-mapping:
+          health: healthz
+    endpoint:
+      health:
+        show-details: always
+  springdoc:
+    swagger-ui:
+      path: /swagger-ui.html
+      groups-order: DESC
+      operations-sorter: alpha
+    api-docs:
+      path: /v3/api-docs

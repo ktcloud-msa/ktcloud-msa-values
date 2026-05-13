@@ -1,0 +1,55 @@
+image:
+  repository: kanei0415/ktcloud-msa-inventory-service
+  tag: eb74530b05172926e95daf560b954a54b5922f35
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+
+appConfig:
+  spring:
+    application:
+      name: inventory-service
+    datasource:
+      url: jdbc:postgresql://postgresql.postgresql.svc.cluster.local:5432/inventory_db
+      username: inventory-service
+      password: inventory-service
+      driver-class-name: org.postgresql.Driver
+    jpa:
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
+      hibernate:
+        ddl-auto: create
+      generate-ddl: true
+      show-sql: true
+    data:
+      redis:
+        host: redis-master.redis.svc.cluster.local
+        port: 6379
+        password: admin1234
+    kafka:
+      bootstrap-servers: kafka.kafka.svc.cluster.local:9092
+      consumer:
+        group-id: inventory-service-group
+        auto-offset-reset: earliest
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      topic:
+        inventory-reserved-result: inventory-reserved-result-topic
+        inventory-reserve-request: inventory-reserve-request-topic
+  server:
+    port: 8080
+  grpc:
+    server:
+      port: 9090
+  management:
+    endpoints:
+      web:
+        base-path: /
+        path-mapping:
+          health: healthz
+    endpoint:
+      health:
+        show-details: always

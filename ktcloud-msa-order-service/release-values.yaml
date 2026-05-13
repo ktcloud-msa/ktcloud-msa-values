@@ -1,0 +1,50 @@
+image:
+  repository: kanei0415/ktcloud-msa-order-service
+  tag: 4c35d0ac86f04ba1edf70b62da3edf43e59957fc
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+
+appConfig:
+  spring:
+    application:
+      name: order-service
+    datasource:
+      url: jdbc:postgresql://postgresql.postgresql.svc.cluster.local:5432/order_db
+      username: order-service
+      password: order-service
+      driver-class-name: org.postgresql.Driver
+    jpa:
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
+      hibernate:
+        ddl-auto: create
+      generate-ddl: true
+      show-sql: true
+    kafka:
+      bootstrap-servers: kafka.kafka.svc.cluster.local:9092
+      consumer:
+        group-id: order-service-group
+        auto-offset-reset: earliest
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      topic:
+        inventory-reserved-result: inventory-reserved-result-topic
+        inventory-reserve-request: inventory-reserve-request-topic
+  server:
+    port: 8080
+  grpc:
+    server:
+      port: 9090
+  management:
+    endpoints:
+      web:
+        base-path: /
+        path-mapping:
+          health: healthz
+    endpoint:
+      health:
+        show-details: always

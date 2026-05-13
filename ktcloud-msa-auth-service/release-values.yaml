@@ -1,0 +1,43 @@
+image:
+  repository: kanei0415/ktcloud-msa-inventory-service
+  tag: eb74530b05172926e95daf560b954a54b5922f35
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+
+appConfig:
+  spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://postgresql.postgresql.svc.cluster.local:5432/auth_db
+    username: auth-service
+    password: auth-service
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create
+    generate-ddl: true
+    show-sql: true
+  data:
+    redis:
+      host: redis-master.redis.svc.cluster.local
+      port: 6379
+      password: admin1234
+  jwt:
+    secret: 'v7S6A9yB2E5H8KcNfUjXnZr4u7x!A%D*G-'
+  server:
+    port: 8080
+  grpc:
+    server:
+      port: 9090
+  management:
+    endpoints:
+      web:
+        base-path: /
+        path-mapping:
+          health: healthz
+    endpoint:
+      health:
+        show-details: always
