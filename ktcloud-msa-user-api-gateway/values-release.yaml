@@ -7,7 +7,7 @@ addons:
   
 
 service:
-  type: LoadBalancer
+  type: ClusterIP
 
 appConfig:
   spring:
