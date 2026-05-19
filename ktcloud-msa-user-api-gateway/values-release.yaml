@@ -7,7 +7,10 @@ service:
   type: ClusterIP
 
 externalSecret:
-  enabled: true
+  # Disabled: AWS Secrets Manager stores literal "CHANGE_ME_*" placeholders
+  # which makes JWT_SECRET too short for HS256. user-api-gateway-secrets is
+  # populated manually in-cluster instead. Re-enable once SM is seeded.
+  enabled: false
   targetName: user-api-gateway-secrets
   awsSecretName: kt-cloud-cluster/user-api-gateway
 

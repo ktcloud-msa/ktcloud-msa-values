@@ -7,18 +7,12 @@ service:
   type: ClusterIP
 
 externalSecret:
-  enabled: true
+  # Disabled: AWS Secrets Manager stores literal "CHANGE_ME_*" placeholders
+  # which makes JWT_SECRET too short for HS256. auth-service-secrets is
+  # populated manually in-cluster instead. Re-enable once SM is seeded.
+  enabled: false
   targetName: auth-service-secrets
   awsSecretName: kt-cloud-cluster/auth-service
-  # Bitnami subcharts read the password from differently-named keys, so we
-  # alias the same SM JSON properties under additional secret keys.
-  keys:
-    - secretKey: password
-      property: DB_PASSWORD
-    - secretKey: postgres-password
-      property: DB_PASSWORD
-    - secretKey: redis-password
-      property: REDIS_PASSWORD
 
 postgresql:
   enabled: true
