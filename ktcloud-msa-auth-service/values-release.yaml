@@ -6,14 +6,80 @@ image:
 service:
   type: ClusterIP
 
+externalSecret:
+  enabled: true
+  targetName: auth-service-secrets
+  awsSecretName: kt-cloud-cluster/auth-service
+  # Bitnami subcharts read the password from differently-named keys, so we
+  # alias the same SM JSON properties under additional secret keys.
+  keys:
+    - secretKey: password
+      property: DB_PASSWORD
+    - secretKey: postgres-password
+      property: DB_PASSWORD
+    - secretKey: redis-password
+      property: REDIS_PASSWORD
+
+postgresql:
+  enabled: true
+  fullnameOverride: auth-postgres
+  architecture: standalone
+  global:
+    security:
+      allowInsecureImages: true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+    tag: 17.6.0-debian-12-r0
+  auth:
+    username: auth-service
+    database: auth_db
+    existingSecret: auth-service-secrets
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
+  primary:
+    persistence:
+      enabled: true
+      storageClass: ebs-sc
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+redis:
+  enabled: true
+  fullnameOverride: auth-redis
+  architecture: standalone
+  global:
+    security:
+      allowInsecureImages: true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/redis
+    tag: 8.2.1-debian-12-r0
+  auth:
+    enabled: true
+    existingSecret: auth-service-secrets
+    existingSecretPasswordKey: redis-password
+  master:
+    persistence:
+      enabled: true
+      storageClass: ebs-sc
+      size: 2Gi
+
 appConfig:
   spring:
     application:
       name: auth-service
     datasource:
-      url: jdbc:postgresql://postgresql.postgresql.svc.cluster.local:5432/auth_db
+      url: jdbc:postgresql://auth-postgres:5432/auth_db
       username: auth-service
-      password: auth-service
+      password: ${DB_PASSWORD}
       driver-class-name: org.postgresql.Driver
     jpa:
       database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -23,11 +89,11 @@ appConfig:
       show-sql: true
     data:
       redis:
-        host: redis-master.redis.svc.cluster.local
+        host: auth-redis-master
         port: 6379
-        password: admin1234
+        password: ${REDIS_PASSWORD}
   jwt:
-    secret: 'v7S6A9yB2E5H8KcNfUjXnZr4u7x!A%D*G-'
+    secret: ${JWT_SECRET}
   server:
     port: 8080
   grpc:

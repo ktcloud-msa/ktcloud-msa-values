@@ -3,11 +3,13 @@ image:
   tag: e6699d9a29f65f8207d2f1f9134a75c6338368a6
   pullPolicy: IfNotPresent
 
-addons:
-  
-
 service:
   type: ClusterIP
+
+externalSecret:
+  enabled: true
+  targetName: user-api-gateway-secrets
+  awsSecretName: kt-cloud-cluster/user-api-gateway
 
 appConfig:
   spring:
@@ -28,7 +30,7 @@ appConfig:
         address: 'static://inventory-service-release.svc.ktcloud-market-msa-release:9090'
         negotiation-type: plaintext
   jwt:
-    secret: 'v7S6A9yB2E5H8KcNfUjXnZr4u7x!A%D*G-'
+    secret: ${JWT_SECRET}
   server:
     port: 8080
   management:
