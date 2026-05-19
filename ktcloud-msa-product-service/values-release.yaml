@@ -16,6 +16,9 @@ externalSecret:
     - secretKey: postgres-password
       property: DB_PASSWORD
 
+redis:
+  enabled: false
+
 postgresql:
   enabled: true
   fullnameOverride: product-postgres

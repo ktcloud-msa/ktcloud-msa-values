@@ -11,6 +11,12 @@ externalSecret:
   targetName: user-api-gateway-secrets
   awsSecretName: kt-cloud-cluster/user-api-gateway
 
+redis:
+  enabled: false
+
+postgresql:
+  enabled: false
+
 appConfig:
   spring:
     application:
