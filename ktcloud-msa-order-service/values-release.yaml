@@ -1,6 +1,6 @@
 image:
   repository: kanei0415/ktcloud-msa-order-service
-  tag: 3f9b8cda86f41332ea2c48fc6b4495e72245f554
+  tag: a312007b1ec6df677c275ea1657d399242dd24f5
   pullPolicy: IfNotPresent
 
 service:
@@ -29,7 +29,7 @@ postgresql:
   image:
     registry: docker.io
     repository: bitnamilegacy/postgresql
-    tag: 17.6.0-debian-12-r0
+    tag: a312007b1ec6df677c275ea1657d399242dd24f5
   auth:
     username: order-service
     database: order_db
