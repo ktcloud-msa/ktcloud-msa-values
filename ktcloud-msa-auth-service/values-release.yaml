@@ -7,12 +7,21 @@ service:
   type: ClusterIP
 
 externalSecret:
-  # Disabled: AWS Secrets Manager stores literal "CHANGE_ME_*" placeholders
-  # which makes JWT_SECRET too short for HS256. auth-service-secrets is
-  # populated manually in-cluster instead. Re-enable once SM is seeded.
-  enabled: false
+  enabled: true
   targetName: auth-service-secrets
   awsSecretName: kt-cloud-cluster/auth-service
+  keys:
+    - secretKey: password
+      property: DB_PASSWORD
+    - secretKey: postgres-password
+      property: DB_PASSWORD
+    - secretKey: redis-password
+      property: REDIS_PASSWORD
+
+# Strong JWT_SECRET injected via a chart-managed Secret that overrides the
+# placeholder JWT_SECRET coming from AWS SM via ESO. Must match the value in
+# user-api-gateway so issued and validated tokens line up.
+jwtSecret: pNiKW9c2Z8E5dFmYqRtVgXz3uIoBnH7lTaJkSh1xPyMr46WvUe
 
 postgresql:
   enabled: true
@@ -34,7 +43,9 @@ postgresql:
       userPasswordKey: password
   primary:
     persistence:
-      enabled: false
+      enabled: true
+      storageClass: ebs-sc
+      size: 5Gi
     resources:
       requests:
         cpu: 100m
@@ -60,7 +71,9 @@ redis:
     existingSecretPasswordKey: redis-password
   master:
     persistence:
-      enabled: false
+      enabled: true
+      storageClass: ebs-sc
+      size: 2Gi
 
 appConfig:
   spring:
