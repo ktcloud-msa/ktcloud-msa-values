@@ -71,7 +71,7 @@ appConfig:
     application:
       name: auth-service
     datasource:
-      url: jdbc:postgresql://auth-postgres:5432/auth_db
+      url: jdbc:postgresql://auth-postgres:5432/auth_db?sslmode=disable
       username: auth-service
       password: ${DB_PASSWORD}
       driver-class-name: org.postgresql.Driver

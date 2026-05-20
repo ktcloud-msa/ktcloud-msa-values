@@ -55,7 +55,7 @@ appConfig:
     application:
       name: product-service
     datasource:
-      url: jdbc:postgresql://product-postgres:5432/product_db
+      url: jdbc:postgresql://product-postgres:5432/product_db?sslmode=disable
       username: product-service
       password: ${DB_PASSWORD}
       driver-class-name: org.postgresql.Driver

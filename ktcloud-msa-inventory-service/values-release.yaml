@@ -75,7 +75,7 @@ appConfig:
     application:
       name: inventory-service
     datasource:
-      url: jdbc:postgresql://inventory-postgres:5432/inventory_db
+      url: jdbc:postgresql://inventory-postgres:5432/inventory_db?sslmode=disable
       username: inventory-service
       password: ${DB_PASSWORD}
       driver-class-name: org.postgresql.Driver
