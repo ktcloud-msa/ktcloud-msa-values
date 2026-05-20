@@ -1,6 +1,6 @@
 image:
   repository: kanei0415/ktcloud-msa-frontend
-  tag: 3461551d96b9675088d354dea21be265fec53d2a
+  tag: 919baadf3faa2a1b2d49d4dfcc6183df67f7e66f
   pullPolicy: IfNotPresent
 
 service:
