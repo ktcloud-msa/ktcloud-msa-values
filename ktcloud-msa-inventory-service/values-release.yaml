@@ -91,7 +91,7 @@ appConfig:
         port: 6379
         password: ${REDIS_PASSWORD}
     kafka:
-      bootstrap-servers: kafka.kafka.svc.cluster.local:9092
+      bootstrap-servers: kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
       consumer:
         group-id: inventory-service-group
         auto-offset-reset: earliest
