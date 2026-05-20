@@ -34,9 +34,7 @@ postgresql:
       userPasswordKey: password
   primary:
     persistence:
-      enabled: true
-      storageClass: ebs-sc
-      size: 5Gi
+      enabled: false
     resources:
       requests:
         cpu: 100m
@@ -62,9 +60,7 @@ redis:
     existingSecretPasswordKey: redis-password
   master:
     persistence:
-      enabled: true
-      storageClass: ebs-sc
-      size: 2Gi
+      enabled: false
 
 appConfig:
   spring:
