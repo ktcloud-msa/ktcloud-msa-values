@@ -1,0 +1,7 @@
+image:
+  repository: kanei0415/ktcloud-msa-frontend
+  tag: 3461551d96b9675088d354dea21be265fec53d2a
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
