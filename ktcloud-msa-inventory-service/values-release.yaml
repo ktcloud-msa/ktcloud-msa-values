@@ -1,6 +1,6 @@
 image:
   repository: kanei0415/ktcloud-msa-inventory-service
-  tag: 6f0f450f7172d3d0c7b2d1397051226e1290a0f8
+  tag: f8fed3ea69de9cc2cb7972cc3f0f6ca3ecaf6b40
   pullPolicy: IfNotPresent
 
 service:
@@ -28,7 +28,7 @@ postgresql:
   image:
     registry: docker.io
     repository: bitnamilegacy/postgresql
-    tag: 17.6.0-debian-12-r0
+    tag: f8fed3ea69de9cc2cb7972cc3f0f6ca3ecaf6b40
   auth:
     username: inventory-service
     database: inventory_db
@@ -59,7 +59,7 @@ redis:
   image:
     registry: docker.io
     repository: bitnamilegacy/redis
-    tag: 8.2.1-debian-12-r0
+    tag: f8fed3ea69de9cc2cb7972cc3f0f6ca3ecaf6b40
   auth:
     enabled: true
     existingSecret: inventory-service-secrets
