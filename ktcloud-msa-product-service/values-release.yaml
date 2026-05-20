@@ -1,6 +1,6 @@
 image:
   repository: kanei0415/ktcloud-msa-product-service
-  tag: 42f30b763909d7c8022b515a93d1f8a16beaf38e
+  tag: a1d979b214dcd58d0baa269a481534657959b4c8
   pullPolicy: IfNotPresent
 
 service:
@@ -29,7 +29,7 @@ postgresql:
   image:
     registry: docker.io
     repository: bitnamilegacy/postgresql
-    tag: 17.6.0-debian-12-r0
+    tag: a1d979b214dcd58d0baa269a481534657959b4c8
   auth:
     username: product-service
     database: product_db
