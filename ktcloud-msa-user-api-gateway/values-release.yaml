@@ -7,7 +7,7 @@ service:
   type: ClusterIP
 
 externalSecret:
-  enabled: false
+  enabled: true
   targetName: user-api-gateway-secrets
   awsSecretName: kt-cloud-cluster/user-api-gateway
 
@@ -24,6 +24,15 @@ appConfig:
   spring:
     application:
       name: user-api-gateway
+    # Redis backing Bucket4j rate limiter (RateLimitAutoConfiguration in
+    # common lib gates on spring.data.redis.host). Reuses the existing
+    # inventory-redis-master; REDIS_PASSWORD comes from ESO-managed
+    # user-api-gateway-secrets (AWS SM key kt-cloud-cluster/user-api-gateway).
+    data:
+      redis:
+        host: inventory-redis-master
+        port: 6379
+        password: ${REDIS_PASSWORD}
   grpc:
     client:
       auth-service:
