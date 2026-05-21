@@ -29,7 +29,7 @@ postgresql:
   image:
     registry: docker.io
     repository: bitnamilegacy/postgresql
-    tag: a312007b1ec6df677c275ea1657d399242dd24f5
+    tag: "16"
   auth:
     username: order-service
     database: order_db

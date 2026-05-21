@@ -33,7 +33,7 @@ postgresql:
   image:
     registry: docker.io
     repository: bitnamilegacy/postgresql
-    tag: 3461551d96b9675088d354dea21be265fec53d2a
+    tag: "16"
   auth:
     username: auth-service
     database: auth_db
@@ -64,7 +64,7 @@ redis:
   image:
     registry: docker.io
     repository: bitnamilegacy/redis
-    tag: 3461551d96b9675088d354dea21be265fec53d2a
+    tag: "7.4"
   auth:
     enabled: true
     existingSecret: auth-service-secrets
