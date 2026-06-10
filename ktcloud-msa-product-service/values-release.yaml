@@ -74,8 +74,27 @@ appConfig:
     endpoints:
       web:
         base-path: /
+        exposure:
+          include: health,info,prometheus,metrics
         path-mapping:
           health: healthz
     endpoint:
       health:
         show-details: always
+        probes:
+          enabled: true
+        group:
+          readiness:
+            include: readinessState,db
+    prometheus:
+      metrics:
+        export:
+          enabled: true
+    metrics:
+      tags:
+        application: product-service
+      distribution:
+        percentiles-histogram:
+          http.server.requests: true
+        slo:
+          http.server.requests: 100ms,500ms,1s,2s

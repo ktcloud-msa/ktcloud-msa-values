@@ -6,6 +6,13 @@ image:
 service:
   type: ClusterIP
 
+# The gateway is the single north-south entry point (fronted by Traefik/ALB in
+# the `traefik` namespace), so its NetworkPolicy must accept ingress from
+# outside the app namespace. JWT auth is enforced at the gateway itself.
+networkPolicy:
+  enabled: true
+  allowExternal: true
+
 externalSecret:
   enabled: true
   targetName: user-api-gateway-secrets
@@ -55,11 +62,32 @@ appConfig:
     endpoints:
       web:
         base-path: /
+        exposure:
+          include: health,info,prometheus,metrics
         path-mapping:
           health: healthz
     endpoint:
       health:
         show-details: always
+        probes:
+          enabled: true
+        # The gateway must stay reachable even if Redis (rate-limiter backing
+        # store) is down, so readiness does NOT include redis.
+        group:
+          readiness:
+            include: readinessState
+    prometheus:
+      metrics:
+        export:
+          enabled: true
+    metrics:
+      tags:
+        application: user-api-gateway
+      distribution:
+        percentiles-histogram:
+          http.server.requests: true
+        slo:
+          http.server.requests: 100ms,500ms,1s,2s
   springdoc:
     swagger-ui:
       path: /swagger-ui.html

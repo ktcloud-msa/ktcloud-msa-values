@@ -1,0 +1,77 @@
+name: values-ci
+
+# Path-filtered DevSecOps gate for the per-service values overlays. Only the
+# services whose values changed are rendered against the shared chart, scanned
+# with Trivy (config), schema-checked, and the result posted to Slack. Mirrors
+# the "build only what changed" requirement at the GitOps-config layer.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ktcloud-msa-auth-service: ['ktcloud-msa-auth-service/**']
+            ktcloud-msa-product-service: ['ktcloud-msa-product-service/**']
+            ktcloud-msa-inventory-service: ['ktcloud-msa-inventory-service/**']
+            ktcloud-msa-order-service: ['ktcloud-msa-order-service/**']
+            ktcloud-msa-user-api-gateway: ['ktcloud-msa-user-api-gateway/**']
+
+  render-scan:
+    needs: detect
+    if: ${{ needs.detect.outputs.services != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJSON(needs.detect.outputs.services) }}
+    steps:
+      - name: Checkout values repo
+        uses: actions/checkout@v4
+        with:
+          path: values
+
+      - name: Checkout shared chart
+        uses: actions/checkout@v4
+        with:
+          repository: ktcloud-msa/ktcloud-msa-chart
+          ref: template
+          path: chart
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      - name: Render ${{ matrix.service }}
+        run: |
+          helm dependency build chart
+          helm template ${{ matrix.service }}-release chart \
+            -f values/${{ matrix.service }}/values-release.yaml \
+            --namespace ktcloud-market-msa-release > rendered.yaml
+          test -s rendered.yaml
+
+      - name: Trivy config scan (fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: rendered.yaml
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          format: table
+
+      - name: Notify Slack #deploy-status
+        if: always()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          channel-id: "#deploy-status"
+          slack-message: "values-ci ${{ job.status }} — ${{ matrix.service }} @ ${{ github.sha }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

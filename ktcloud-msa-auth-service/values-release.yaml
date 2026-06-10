@@ -106,8 +106,33 @@ appConfig:
     endpoints:
       web:
         base-path: /
+        # Expose the Actuator Prometheus scrape endpoint (served at /prometheus
+        # since base-path is '/'); the chart ServiceMonitor scrapes it.
+        exposure:
+          include: health,info,prometheus,metrics
         path-mapping:
           health: healthz
     endpoint:
       health:
         show-details: always
+        # K8s probe groups -> /healthz/liveness (process only) and
+        # /healthz/readiness (gated on DB + Redis so traffic stops on outage).
+        probes:
+          enabled: true
+        group:
+          readiness:
+            include: readinessState,db,redis
+    prometheus:
+      metrics:
+        export:
+          enabled: true
+    metrics:
+      tags:
+        application: auth-service
+      distribution:
+        # Emit http_server_requests_seconds_bucket so Prometheus can compute
+        # P99 latency via histogram_quantile (the >2s SLO alert depends on it).
+        percentiles-histogram:
+          http.server.requests: true
+        slo:
+          http.server.requests: 100ms,500ms,1s,2s

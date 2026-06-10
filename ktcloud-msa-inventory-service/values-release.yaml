@@ -6,6 +6,42 @@ image:
 service:
   type: ClusterIP
 
+# -----------------------------------------------------------------------------
+# Event-driven autoscaling. Inventory is the saga consumer of
+# inventory-reserve-request-topic; when reservation events back up (consumer
+# lag), KEDA scales it out. A cron trigger pre-warms replicas during the
+# evening peak. KEDA owns the HPA, so the CPU HPA is disabled here.
+# -----------------------------------------------------------------------------
+autoscaling:
+  enabled: false
+
+keda:
+  enabled: true
+  minReplicaCount: 2
+  maxReplicaCount: 12
+  cooldownPeriod: 120
+  pollingInterval: 15
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
+        consumerGroup: inventory-service-group
+        topic: inventory-reserve-request-topic
+        lagThreshold: "50"
+        offsetResetPolicy: earliest
+    # CPU fallback so a non-Kafka load spike still scales the service.
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
+    # Scheduled pre-warm for the evening peak (Asia/Seoul 20:00-23:00).
+    - type: cron
+      metadata:
+        timezone: Asia/Seoul
+        start: "0 20 * * *"
+        end: "0 23 * * *"
+        desiredReplicas: "4"
+
 externalSecret:
   enabled: true
   targetName: inventory-service-secrets
@@ -112,8 +148,29 @@ appConfig:
     endpoints:
       web:
         base-path: /
+        exposure:
+          include: health,info,prometheus,metrics
         path-mapping:
           health: healthz
     endpoint:
       health:
         show-details: always
+        probes:
+          enabled: true
+        # Readiness gates on DB + Redis but NOT Kafka — the saga is async, so a
+        # transient broker hiccup must not pull the pod out of rotation.
+        group:
+          readiness:
+            include: readinessState,db,redis
+    prometheus:
+      metrics:
+        export:
+          enabled: true
+    metrics:
+      tags:
+        application: inventory-service
+      distribution:
+        percentiles-histogram:
+          http.server.requests: true
+        slo:
+          http.server.requests: 100ms,500ms,1s,2s

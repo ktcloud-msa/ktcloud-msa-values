@@ -6,6 +6,47 @@ image:
 service:
   type: ClusterIP
 
+# -----------------------------------------------------------------------------
+# Order is the saga orchestrator and consumes inventory-reserved-result-topic,
+# so it scales on that consumer lag via KEDA (HPA disabled below).
+# -----------------------------------------------------------------------------
+autoscaling:
+  enabled: false
+
+keda:
+  enabled: true
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  cooldownPeriod: 120
+  pollingInterval: 15
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
+        consumerGroup: order-service-group
+        topic: inventory-reserved-result-topic
+        lagThreshold: "50"
+        offsetResetPolicy: earliest
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
+
+# -----------------------------------------------------------------------------
+# Canary release for the order service (the "transfer-like" critical path).
+# The chart renders a second `order-...-canary` Deployment carrying
+# version: canary, and the Istio VirtualService sends `weight`% of traffic to
+# it. Progressive shift = bump weight 20 -> 50 -> 100, then promote by moving
+# image.tag to canary.tag and disabling canary. Point canary.tag at the new
+# candidate image SHA before enabling in anger; it defaults to the stable tag
+# here so the wiring renders against a pullable image.
+# -----------------------------------------------------------------------------
+canary:
+  enabled: true
+  weight: 20
+  tag: a312007b1ec6df677c275ea1657d399242dd24f5
+  replicaCount: 1
+
 externalSecret:
   enabled: true
   targetName: order-service-secrets
@@ -87,8 +128,27 @@ appConfig:
     endpoints:
       web:
         base-path: /
+        exposure:
+          include: health,info,prometheus,metrics
         path-mapping:
           health: healthz
     endpoint:
       health:
         show-details: always
+        probes:
+          enabled: true
+        group:
+          readiness:
+            include: readinessState,db
+    prometheus:
+      metrics:
+        export:
+          enabled: true
+    metrics:
+      tags:
+        application: order-service
+      distribution:
+        percentiles-histogram:
+          http.server.requests: true
+        slo:
+          http.server.requests: 100ms,500ms,1s,2s
