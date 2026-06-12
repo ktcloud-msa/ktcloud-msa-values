@@ -1,0 +1,61 @@
+# _template — scaffold for a new microservice's values overlay.
+#
+# Copy this directory to `ktcloud-msa-<service>/` (the folder name must match
+# the `app:` entry added to applications/appset.yaml in the argocd manifest
+# repo), then fill in the placeholders. `_template/` itself is never deployed:
+# both the ArgoCD ApplicationSet and the values-ci workflow iterate an explicit
+# service list, so this folder is ignored by them.
+#
+# Rendered by the shared chart `ktcloud-msa/ktcloud-msa-chart` (ref `template`).
+
+image:
+  repository: kanei0415/ktcloud-msa-<service>   # Docker Hub repo; tag pushed by the upstream service repo
+  tag: latest                                    # commit SHA in real overlays — do NOT hand-edit in prod
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP            # ClusterIP for backend services; LoadBalancer only for the api-gateway
+
+# Pull secrets from AWS Secrets Manager via External Secrets Operator.
+# Remove this block if the service needs no secrets.
+externalSecret:
+  enabled: true
+  targetName: <service>-secrets
+  awsSecretName: kt-cloud-cluster/<service>
+  keys:
+    - secretKey: password
+      property: DB_PASSWORD
+
+# Per-service datastores (Bitnami subcharts). Enable only what the service uses.
+postgresql:
+  enabled: false
+redis:
+  enabled: false
+
+# Everything under appConfig is dumped verbatim into a ConfigMap mounted at
+# /config/application.yaml — this is the ONLY config injection mechanism.
+appConfig:
+  spring:
+    application:
+      name: <service>
+  server:
+    port: 8080
+  # Set grpc.server.* ONLY if the service speaks gRPC — its presence is the
+  # contract that makes the chart expose a second `grpc` Service port (9090).
+  # grpc:
+  #   server:
+  #     port: 9090
+  management:
+    endpoints:
+      web:
+        base-path: /
+        exposure:
+          include: health,info,prometheus,metrics
+    endpoint:
+      health:
+        probes:
+          enabled: true
+    prometheus:
+      metrics:
+        export:
+          enabled: true
