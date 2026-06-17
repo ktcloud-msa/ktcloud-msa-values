@@ -1,0 +1,132 @@
+name: sonarqube-reusable
+
+# =============================================================================
+# Reusable SonarQube quality-gate workflow (workflow_call).
+#
+# This is a TEMPLATE. The actual Java application build lives in each service
+# repo (ktcloud-msa-auth-service, ...-product-service, etc). Those repos call
+# THIS workflow from their own CI, e.g.:
+#
+#   jobs:
+#     quality-gate:
+#       uses: ktcloud-msa/ktcloud-msa-values/.github/workflows/sonarqube-reusable.yaml@main
+#       with:
+#         build-tool: gradle          # or "maven"
+#         project-key: ktcloud-msa-auth-service
+#       secrets:
+#         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}   # http://sonarqube-sonarqube.sonarqube.svc:9000 (or tunnel)
+#         SONAR_TOKEN:    ${{ secrets.SONAR_TOKEN }}
+#
+# It builds with coverage, runs sonar-scanner against the self-hosted
+# SonarQube, BLOCKS on the server-side Quality Gate (which is configured to
+# require >= 80% coverage and zero Critical issues), and posts the result as a
+# PR comment.
+# =============================================================================
+
+on:
+  workflow_call:
+    inputs:
+      build-tool:
+        description: "Build tool: gradle or maven"
+        type: string
+        default: "gradle"
+      project-key:
+        description: "SonarQube projectKey (defaults to repo name)"
+        type: string
+        default: ""
+      java-version:
+        description: "JDK version"
+        type: string
+        default: "17"
+    secrets:
+      SONAR_HOST_URL:
+        description: "Base URL of the self-hosted SonarQube"
+        required: true
+      SONAR_TOKEN:
+        description: "SonarQube analysis token"
+        required: true
+
+jobs:
+  sonar-quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Shallow clones break SonarQube's new-code / blame analysis.
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java-version }}
+
+      # ----- Build + test with coverage --------------------------------------
+      # The real source/tests live in the calling service repo. We produce a
+      # coverage report (JaCoCo) that SonarQube ingests.
+      - name: Build & test with coverage (Gradle)
+        if: ${{ inputs.build-tool == 'gradle' }}
+        run: ./gradlew --no-daemon clean test jacocoTestReport
+
+      - name: Build & test with coverage (Maven)
+        if: ${{ inputs.build-tool == 'maven' }}
+        run: mvn -B clean verify
+
+      # ----- SonarQube analysis ---------------------------------------------
+      - name: Resolve project key
+        id: keys
+        run: |
+          KEY="${{ inputs.project-key }}"
+          [ -z "$KEY" ] && KEY="${GITHUB_REPOSITORY##*/}"
+          echo "project-key=$KEY" >> "$GITHUB_OUTPUT"
+
+      - name: SonarQube Scan (waits for Quality Gate)
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ steps.keys.outputs.project-key }}
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=600
+            -Dsonar.coverage.jacoco.xmlReportPaths=**/build/reports/jacoco/test/jacocoTestReport.xml,**/target/site/jacoco/jacoco.xml
+
+      # sonarqube-scan-action exits non-zero when the gate fails. The gate is
+      # defined server-side to require coverage >= 80% AND zero Critical issues,
+      # so a failing gate FAILS this job (and the calling pipeline).
+
+      # ----- PR comment with the result -------------------------------------
+      - name: Comment Quality Gate result on PR
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ok = '${{ job.status }}' === 'success';
+            const key = '${{ steps.keys.outputs.project-key }}';
+            const host = '${{ secrets.SONAR_HOST_URL }}';
+            const dash = `${host}/dashboard?id=${key}`;
+            const body = [
+              `### SonarQube Quality Gate: ${ok ? '✅ PASSED' : '❌ FAILED'}`,
+              ``,
+              `- Gate policy: coverage **>= 80%** and **zero Critical** issues`,
+              `- Project: \`${key}\``,
+              `- Dashboard: ${dash}`,
+              ok ? '' : '> Pipeline blocked — fix coverage/Critical issues before merge.',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      - name: Notify Slack #security-report
+        if: ${{ always() }}
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          channel-id: "#security-report"
+          slack-message: "SonarQube gate ${{ job.status }} — ${{ steps.keys.outputs.project-key }} @ ${{ github.sha }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

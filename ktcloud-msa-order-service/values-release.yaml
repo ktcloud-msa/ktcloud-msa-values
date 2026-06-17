@@ -33,16 +33,27 @@ keda:
         value: "70"
 
 # -----------------------------------------------------------------------------
-# Canary release for the order service (the "transfer-like" critical path).
-# The chart renders a second `order-...-canary` Deployment carrying
-# version: canary, and the Istio VirtualService sends `weight`% of traffic to
-# it. Progressive shift = bump weight 20 -> 50 -> 100, then promote by moving
-# image.tag to canary.tag and disabling canary. Point canary.tag at the new
-# candidate image SHA before enabling in anger; it defaults to the stable tag
-# here so the wiring renders against a pullable image.
+# Progressive delivery for the order service (the "transfer-like" critical
+# path) via Argo Rollouts. The chart renders a Rollout instead of a Deployment;
+# the canary advances 20% -> 50% -> 80% -> promote, and after each weight bump
+# an AnalysisRun polls the service's 5xx error-rate recording rule in
+# Prometheus. If the error rate breaches 5% the Rollout auto-aborts and rolls
+# back to the last stable ReplicaSet. KEDA (above) targets the Rollout.
+#
+# To ship a new build: bump image.tag and let ArgoCD sync — Argo Rollouts then
+# drives the staged canary automatically (no weight edits needed). The legacy
+# Istio-weighted `canary` block is disabled; Argo owns the canary ReplicaSet.
 # -----------------------------------------------------------------------------
-canary:
+rollout:
   enabled: true
+  analysis:
+    errorRateThreshold: "0.05"
+    interval: 60s
+    count: 3
+    failureLimit: 1
+
+canary:
+  enabled: false
   weight: 20
   tag: a312007b1ec6df677c275ea1657d399242dd24f5
   replicaCount: 1
