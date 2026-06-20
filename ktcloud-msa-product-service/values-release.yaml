@@ -19,43 +19,22 @@ externalSecret:
 redis:
   enabled: false
 
-postgresql:
+# CloudNativePG HA cluster (1 primary + 2 replicas), managed by the
+# cnpg-operator. The chart renders the postgresql.cnpg.io/v1 Cluster and a
+# basic-auth ExternalSecret it bootstraps from. App connects via product-postgres-rw.
+cnpg:
   enabled: true
-  fullnameOverride: product-postgres
-  architecture: standalone
-  global:
-    security:
-      allowInsecureImages: true
-  image:
-    registry: docker.io
-    repository: bitnamilegacy/postgresql
-    tag: "16"
-  auth:
-    username: product-service
-    database: product_db
-    existingSecret: product-service-secrets
-    secretKeys:
-      adminPasswordKey: postgres-password
-      userPasswordKey: password
-  primary:
-    persistence:
-      enabled: true
-      storageClass: ebs-sc
-      size: 5Gi
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: 1000m
-        memory: 1Gi
+  name: product-postgres
+  database: product_db
+  owner: product-service
+  instances: 3
 
 appConfig:
   spring:
     application:
       name: product-service
     datasource:
-      url: jdbc:postgresql://product-postgres:5432/product_db?sslmode=disable
+      url: jdbc:postgresql://product-postgres-rw:5432/product_db?sslmode=disable
       username: product-service
       password: ${DB_PASSWORD}
       driver-class-name: org.postgresql.Driver

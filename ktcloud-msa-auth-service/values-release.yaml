@@ -23,36 +23,15 @@ externalSecret:
 # user-api-gateway so issued and validated tokens line up.
 jwtSecret: pNiKW9c2Z8E5dFmYqRtVgXz3uIoBnH7lTaJkSh1xPyMr46WvUe
 
-postgresql:
+# CloudNativePG HA cluster (1 primary + 2 replicas), managed by the
+# cnpg-operator. The chart renders the postgresql.cnpg.io/v1 Cluster and a
+# basic-auth ExternalSecret it bootstraps from. App connects via auth-postgres-rw.
+cnpg:
   enabled: true
-  fullnameOverride: auth-postgres
-  architecture: standalone
-  global:
-    security:
-      allowInsecureImages: true
-  image:
-    registry: docker.io
-    repository: bitnamilegacy/postgresql
-    tag: "16"
-  auth:
-    username: auth-service
-    database: auth_db
-    existingSecret: auth-service-secrets
-    secretKeys:
-      adminPasswordKey: postgres-password
-      userPasswordKey: password
-  primary:
-    persistence:
-      enabled: true
-      storageClass: ebs-sc
-      size: 5Gi
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: 1000m
-        memory: 1Gi
+  name: auth-postgres
+  database: auth_db
+  owner: auth-service
+  instances: 3
 
 redis:
   enabled: true
@@ -80,7 +59,7 @@ appConfig:
     application:
       name: auth-service
     datasource:
-      url: jdbc:postgresql://auth-postgres:5432/auth_db?sslmode=disable
+      url: jdbc:postgresql://auth-postgres-rw:5432/auth_db?sslmode=disable
       username: auth-service
       password: ${DB_PASSWORD}
       driver-class-name: org.postgresql.Driver

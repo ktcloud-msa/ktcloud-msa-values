@@ -54,36 +54,15 @@ externalSecret:
     - secretKey: redis-password
       property: REDIS_PASSWORD
 
-postgresql:
+# CloudNativePG HA cluster (1 primary + 2 replicas), managed by the
+# cnpg-operator. The chart renders the postgresql.cnpg.io/v1 Cluster and a
+# basic-auth ExternalSecret it bootstraps from. App connects via inventory-postgres-rw.
+cnpg:
   enabled: true
-  fullnameOverride: inventory-postgres
-  architecture: standalone
-  global:
-    security:
-      allowInsecureImages: true
-  image:
-    registry: docker.io
-    repository: bitnamilegacy/postgresql
-    tag: "16"
-  auth:
-    username: inventory-service
-    database: inventory_db
-    existingSecret: inventory-service-secrets
-    secretKeys:
-      adminPasswordKey: postgres-password
-      userPasswordKey: password
-  primary:
-    persistence:
-      enabled: true
-      storageClass: ebs-sc
-      size: 5Gi
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: 1000m
-        memory: 1Gi
+  name: inventory-postgres
+  database: inventory_db
+  owner: inventory-service
+  instances: 3
 
 redis:
   enabled: true
@@ -111,7 +90,7 @@ appConfig:
     application:
       name: inventory-service
     datasource:
-      url: jdbc:postgresql://inventory-postgres:5432/inventory_db?sslmode=disable
+      url: jdbc:postgresql://inventory-postgres-rw:5432/inventory_db?sslmode=disable
       username: inventory-service
       password: ${DB_PASSWORD}
       driver-class-name: org.postgresql.Driver

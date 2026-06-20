@@ -24,7 +24,8 @@ jwtSecret: pNiKW9c2Z8E5dFmYqRtVgXz3uIoBnH7lTaJkSh1xPyMr46WvUe
 redis:
   enabled: false
 
-postgresql:
+# The gateway has no database.
+cnpg:
   enabled: false
 
 appConfig:

@@ -26,9 +26,16 @@ externalSecret:
     - secretKey: password
       property: DB_PASSWORD
 
-# Per-service datastores (Bitnami subcharts). Enable only what the service uses.
-postgresql:
+# Per-service datastores. Postgres is a CloudNativePG HA Cluster (managed by the
+# cnpg-operator); Redis is still a Bitnami subchart. Enable only what's used.
+# When cnpg.enabled, point spring.datasource.url at `<name>-rw` (the primary
+# Service) and ensure `owner` matches spring.datasource.username.
+cnpg:
   enabled: false
+  name: <service>-postgres
+  database: <service>_db
+  owner: <service>
+  instances: 3
 redis:
   enabled: false
 
