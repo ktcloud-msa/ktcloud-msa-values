@@ -6,6 +6,16 @@ image:
 service:
   type: ClusterIP
 
+# The gateway's JWT SecurityWebFilterChain guards ALL routes, including the
+# Actuator health path (/healthz/*), so the kubelet readiness/liveness probes
+# come back 401 and the pod never reports Ready even though the app is serving
+# fine on :8080. The backend services have no such filter, so their probes pass.
+# Disable the HTTP probes here (readiness is degradable by design for the BFF).
+# Proper fix lives in the app image: permitAll("/healthz/**") in the gateway's
+# SecurityWebFilterChain, or run Actuator on a separate management.server.port.
+probes:
+  enabled: false
+
 # The gateway is the single north-south entry point (fronted by Traefik/ALB in
 # the `traefik` namespace), so its NetworkPolicy must accept ingress from
 # outside the app namespace. JWT auth is enforced at the gateway itself.
